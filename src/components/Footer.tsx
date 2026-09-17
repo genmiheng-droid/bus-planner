@@ -154,16 +154,7 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Legal Attribution Disclaimer from Document */}
         <div className="border-t border-night-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <p>
-            Contains information from{' '}
-            <a
-              href="https://datamall.lta.gov.sg"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-400 hover:underline"
-            >
-              LTA DataMall
-            </a>
-            , used under the Singapore Open Data Licence. Not affiliated with LTA or any bus operator.
+            Contains information from LTA DataMall and data.gov.sg, accessed 17 September 2026, made available under the terms of the Singapore Open Data Licence version 1.0.
           </p>
           <p>© 2026 SmartCommute. Built for Singapore commuters.</p>
         </div>

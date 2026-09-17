@@ -2,12 +2,14 @@ export interface BusArrival {
   service: string;
   badgeBg?: string;
   destination: string;
-  deckType: 'Double Decker' | 'Single Deck' | 'Bendy';
+  deckType: 'Double Decker' | 'Single Deck' | 'Bendy' | string;
   wheelchair: boolean;
   estMinutes: number;
   nextTimes: string[];
-  crowding: 'Seats Available' | 'Standing Available' | 'Limited Standing';
-  status: 'Predicted (LTA)' | 'Recalculated' | 'On Schedule';
+  crowding: 'Seats Available' | 'Standing Available' | 'Limited Standing' | string;
+  status: 'Predicted (LTA)' | 'Recalculated' | 'On Schedule' | string;
+  minutes?: number[];
+  operator?: string;
 }
 
 export interface BusStop {
