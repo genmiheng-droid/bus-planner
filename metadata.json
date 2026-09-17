@@ -1,0 +1,6 @@
+{
+  "name": "SmartCommute",
+  "description": "Singapore real-time bus arrival times, smart commute route planner, and transit guides.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
