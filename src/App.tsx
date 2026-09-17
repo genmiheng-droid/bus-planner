@@ -27,8 +27,9 @@ import {
   TRANSIT_ALERTS,
   GUIDE_ARTICLES,
   FAQ_ITEMS,
+  resolveSingaporeCoords,
 } from './data/transitData';
-import { BusStop, BusServiceDetail, GuideArticle } from './types';
+import { BusStop, BusServiceDetail, GuideArticle, PlannedRoute } from './types';
 
 export default function App() {
   const [stops] = useState<BusStop[]>(INITIAL_BUS_STOPS);
@@ -50,11 +51,7 @@ export default function App() {
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false);
 
   // Commute Planner calculation state
-  const [plannedRouteResult, setPlannedRouteResult] = useState<{
-    title: string;
-    duration: string;
-    steps: string[];
-  } | null>(null);
+  const [plannedRouteResult, setPlannedRouteResult] = useState<PlannedRoute | null>(null);
 
   useEffect(() => {
     try {
@@ -85,6 +82,10 @@ export default function App() {
     const originShort = cleanOrigin.split(',')[0].trim();
     const destShort = cleanDest.split(',')[0].trim();
 
+    // Resolve geographic coordinates for both Origin and Destination across Singapore
+    const originLocation = resolveSingaporeCoords(cleanOrigin, { x: 490, y: 435 });
+    const destLocation = resolveSingaporeCoords(cleanDest, { x: 830, y: 370 });
+
     // Match keyed-in addresses with any known Singapore transit hubs
     const findMatchingStop = (query: string) => {
       const q = query.toLowerCase();
@@ -101,9 +102,60 @@ export default function App() {
     const originStop = findMatchingStop(cleanOrigin);
     const destStop = findMatchingStop(cleanDest);
 
+    // Update telemetry: switch selected stop to commuter's departure stop immediately
+    if (originStop) {
+      setSelectedStop(originStop);
+    } else {
+      // Create a dynamic departure stop representing commuter's current address
+      const dynamicOriginStop: BusStop = {
+        id: `origin-${originLocation.stopCode || '09022'}`,
+        code: originLocation.stopCode || '09022',
+        name: `${originShort} (Departure)`,
+        road: cleanOrigin.length > 30 ? cleanOrigin.slice(0, 30) + '...' : cleanOrigin,
+        badgeText: 'Current Address',
+        coordinates: { x: originLocation.x, y: originLocation.y },
+        services: [
+          {
+            service: '65',
+            badgeBg: 'bg-brand-600',
+            destination: `To ${destShort}`,
+            deckType: 'Double Decker',
+            wheelchair: true,
+            estMinutes: 2,
+            nextTimes: ['9m', '18m'],
+            crowding: 'Seats Available',
+            status: 'Predicted (LTA)',
+          },
+          {
+            service: '36',
+            badgeBg: 'bg-sgTransit-dt',
+            destination: 'Trunk Express',
+            deckType: 'Double Decker',
+            wheelchair: true,
+            estMinutes: 5,
+            nextTimes: ['14m', '26m'],
+            crowding: 'Standing Available',
+            status: 'Recalculated',
+          },
+          {
+            service: '14',
+            badgeBg: 'bg-emerald-700',
+            destination: 'Connecting Line',
+            deckType: 'Single Deck',
+            wheelchair: true,
+            estMinutes: 11,
+            nextTimes: ['24m'],
+            crowding: 'Seats Available',
+            status: 'On Schedule',
+          },
+        ],
+      };
+      setSelectedStop(dynamicOriginStop);
+    }
+
     const originBoarding = originStop
       ? `${originStop.name} (Stop ${originStop.code})`
-      : `${originShort} (Nearest bus stop)`;
+      : `${originShort} (Nearest stop ${originLocation.stopCode || '09022'})`;
 
     const destAlighting = destStop
       ? `${destStop.name} (Stop ${destStop.code})`
@@ -142,6 +194,10 @@ export default function App() {
       title: `${originShort} ➔ ${destShort}`,
       duration,
       steps,
+      originName: originShort,
+      destName: destShort,
+      originCoords: { x: originLocation.x, y: originLocation.y },
+      destCoords: { x: destLocation.x, y: destLocation.y },
     });
   };
 
@@ -240,6 +296,7 @@ export default function App() {
                   stops={stops}
                   selectedStop={selectedStop}
                   onSelectStop={(stop) => setSelectedStop(stop)}
+                  plannedRoute={plannedRouteResult}
                   showPlannedRoute={!!plannedRouteResult}
                 />
               </div>

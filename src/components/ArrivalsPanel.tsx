@@ -206,14 +206,33 @@ export const ArrivalsPanel: React.FC<ArrivalsPanelProps> = ({
               <span className="font-mono text-slate-400 text-[10px] ml-1">
                 {lastResponseStatus !== null ? `HTTP ${lastResponseStatus}` : ''}
               </span>
+              {simulationMode !== 'live' && (
+                <span className="ml-1 px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-semibold border border-amber-500/40">
+                  Simulated
+                </span>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => setShowTestControls(!showTestControls)}
-              className="text-[10px] text-brand-400 hover:underline cursor-pointer"
-            >
-              {showTestControls ? 'Hide Controls' : 'Show Simulator'}
-            </button>
+            <div className="flex items-center gap-2">
+              {simulationMode !== 'live' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSimulationMode('live');
+                    fetchArrivals(selectedStop.code, 'live');
+                  }}
+                  className="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer underline"
+                >
+                  Exit Simulation
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowTestControls(!showTestControls)}
+                className="text-[10px] text-brand-400 hover:underline cursor-pointer"
+              >
+                {showTestControls ? 'Hide Controls' : 'Show Simulator'}
+              </button>
+            </div>
           </div>
 
           {showTestControls && (
@@ -273,16 +292,44 @@ export const ArrivalsPanel: React.FC<ArrivalsPanelProps> = ({
         {panelState === 'refused' && (
           <div
             id="state-refused-banner"
-            className="mt-3 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-200 text-xs flex items-start gap-2.5"
+            className="mt-3 p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-200 text-xs"
           >
-            <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-rose-200">
-                We could not get bus times, so nothing on this panel is current. Please tell us if this stays.
-              </p>
-              <p className="text-[11px] text-rose-300/80 mt-1">
-                The upstream provider refused the request (HTTP 502).
-              </p>
+            <div className="flex items-start gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-rose-200">
+                  We could not get bus times, so nothing on this panel is current. Please tell us if this stays.
+                </p>
+                <p className="text-[11px] text-rose-300/80 mt-1">
+                  The upstream provider refused the request (HTTP 502).
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 pt-2.5 border-t border-rose-800/50 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSimulationMode('live');
+                  fetchArrivals(selectedStop.code, 'live');
+                }}
+                className="px-2.5 py-1 rounded bg-rose-900/80 hover:bg-rose-800 text-rose-100 text-[11px] font-semibold flex items-center gap-1.5 transition border border-rose-700 cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Retry Live LTA Connection
+              </button>
+              {simulationMode !== 'live' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSimulationMode('live');
+                    fetchArrivals(selectedStop.code, 'live');
+                  }}
+                  className="px-2.5 py-1 rounded bg-night-800 hover:bg-night-700 text-slate-200 text-[11px] font-medium transition border border-night-700 cursor-pointer"
+                >
+                  Exit Test Simulation
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -441,6 +488,66 @@ export const ArrivalsPanel: React.FC<ArrivalsPanelProps> = ({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Fallback Scheduled Timetable when upstream telemetry is unavailable */}
+        {arrivals.length === 0 && panelState !== 'loading' && panelState !== 'empty' && selectedStop.services?.length > 0 && (
+          <div id="scheduled-fallback-container" className="mt-4 space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-brand-400" />
+                Scheduled Timetable (Live Feed Offline)
+              </span>
+              <span className="text-[10px] text-amber-400/90 font-mono font-medium">Fallback</span>
+            </div>
+            {selectedStop.services.map((svc) => (
+              <div
+                key={svc.service}
+                onClick={() => onSelectBusService(svc.service)}
+                className="p-3 bg-night-950/80 rounded-xl border border-night-700/80 hover:border-brand-500/60 transition cursor-pointer group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={`px-2.5 py-1 rounded-md font-bold text-white text-sm ${
+                        svc.badgeBg || 'bg-brand-600'
+                      }`}
+                    >
+                      {svc.service}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <p className="text-xs font-semibold text-slate-200 group-hover:text-brand-400 transition">
+                          {svc.destination}
+                        </p>
+                        <ArrowUpRight className="w-3 h-3 text-slate-500 group-hover:text-brand-400 transition" />
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-400">
+                        {svc.deckType} {svc.wheelchair ? '• Wheelchair' : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-slate-300 font-mono">
+                      ~{svc.estMinutes}m
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {svc.nextTimes && svc.nextTimes.length > 0 ? `Next: ${svc.nextTimes.join(', ')}` : 'Timetable'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400 pt-1.5 border-t border-night-800">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-slate-500" />
+                    {svc.crowding}
+                  </span>
+                  <span className="font-mono text-amber-400/80">Scheduled</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

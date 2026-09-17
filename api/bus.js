@@ -79,6 +79,7 @@ export default async function handler(req, res) {
       {
         headers: {
           AccountKey: key,
+          accept: 'application/json',
         },
       },
       {

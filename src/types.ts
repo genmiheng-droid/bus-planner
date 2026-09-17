@@ -62,3 +62,13 @@ export interface FaqItem {
   question: string;
   answer: string;
 }
+
+export interface PlannedRoute {
+  title: string;
+  duration: string;
+  steps: string[];
+  originName: string;
+  destName: string;
+  originCoords: { x: number; y: number };
+  destCoords: { x: number; y: number };
+}

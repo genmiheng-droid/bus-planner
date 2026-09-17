@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { BusStop } from '../types';
+import { BusStop, PlannedRoute } from '../types';
 
 interface TransitMapProps {
   stops: BusStop[];
   selectedStop: BusStop;
   onSelectStop: (stop: BusStop) => void;
+  plannedRoute?: PlannedRoute | null;
   showPlannedRoute?: boolean;
 }
 
@@ -12,6 +13,7 @@ export const TransitMap: React.FC<TransitMapProps> = ({
   stops,
   selectedStop,
   onSelectStop,
+  plannedRoute = null,
   showPlannedRoute = false,
 }) => {
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -27,6 +29,19 @@ export const TransitMap: React.FC<TransitMapProps> = ({
   const handleResetZoom = () => {
     setZoomLevel(1);
   };
+
+  // Dynamic route coordinates if planned
+  const hasRoute = Boolean(plannedRoute || showPlannedRoute);
+  const originCoords = plannedRoute?.originCoords || { x: 490, y: 435 };
+  const destCoords = plannedRoute?.destCoords || { x: 830, y: 370 };
+  const originName = plannedRoute?.originName || 'Current Address';
+  const destName = plannedRoute?.destName || 'Destination';
+
+  // Quadratic curve between origin and destination
+  const midX = (originCoords.x + destCoords.x) / 2;
+  const dx = destCoords.x - originCoords.x;
+  const midY = (originCoords.y + destCoords.y) / 2 - Math.min(45, Math.max(15, Math.abs(dx) * 0.08));
+  const dynamicRouteD = `M ${originCoords.x},${originCoords.y} Q ${midX},${midY} ${destCoords.x},${destCoords.y}`;
 
   return (
     <div className="relative min-h-[380px] sm:min-h-[460px] bg-[#071120] map-grid-pattern overflow-hidden flex items-center justify-center select-none" data-purpose="singapore-map-view">
@@ -140,27 +155,91 @@ export const TransitMap: React.FC<TransitMapProps> = ({
             opacity="0.85"
           />
 
-          {/* Planned Commute Route Animated Trail (if route is calculated) */}
-          {showPlannedRoute && (
-            <g>
+          {/* Planned Commute Route Animated Trail (from Current Address to Destination Address) */}
+          {hasRoute && (
+            <g id="dynamic-commute-telemetry-route">
+              {/* Outer glow aura */}
               <path
-                d="M 560,420 C 620,400 700,380 815,345"
+                d={dynamicRouteD}
                 stroke="#38bdf8"
-                strokeWidth="5"
+                strokeWidth="7"
+                strokeLinecap="round"
+                opacity="0.25"
+                className="animate-pulse"
+              />
+              {/* Animated Dashed Pulse Line */}
+              <path
+                d={dynamicRouteD}
+                stroke="#0284c7"
+                strokeWidth="4.5"
                 strokeDasharray="8,6"
                 strokeLinecap="round"
                 className="animate-pulse"
               />
               <path
-                d="M 560,420 C 620,400 700,380 815,345"
-                stroke="#60a5fa"
-                strokeWidth="2"
+                d={dynamicRouteD}
+                stroke="#38bdf8"
+                strokeWidth="2.5"
                 strokeLinecap="round"
               />
+
+              {/* Dynamic Origin Marker (Current Address) */}
+              <g transform={`translate(${originCoords.x}, ${originCoords.y})`}>
+                <circle r="18" fill="rgba(16, 185, 129, 0.35)" className="animate-ping" />
+                <circle r="8" fill="#10b981" stroke="#ffffff" strokeWidth="2.5" />
+                <rect
+                  x="-75"
+                  y="-34"
+                  width="150"
+                  height="22"
+                  rx="5"
+                  fill="#022c22"
+                  stroke="#10b981"
+                  strokeWidth="1.5"
+                  opacity="0.95"
+                />
+                <text
+                  x="0"
+                  y="-20"
+                  fill="#6ee7b7"
+                  fontSize="9.5"
+                  fontWeight="700"
+                  textAnchor="middle"
+                >
+                  📍 {originName.length > 20 ? originName.slice(0, 18) + '...' : originName}
+                </text>
+              </g>
+
+              {/* Dynamic Destination Marker (Destination Address) */}
+              <g transform={`translate(${destCoords.x}, ${destCoords.y})`}>
+                <circle r="18" fill="rgba(244, 63, 94, 0.35)" className="animate-ping" />
+                <circle r="8" fill="#f43f5e" stroke="#ffffff" strokeWidth="2.5" />
+                <rect
+                  x="-75"
+                  y="-34"
+                  width="150"
+                  height="22"
+                  rx="5"
+                  fill="#4c0519"
+                  stroke="#f43f5e"
+                  strokeWidth="1.5"
+                  opacity="0.95"
+                />
+                <text
+                  x="0"
+                  y="-20"
+                  fill="#fda4af"
+                  fontSize="9.5"
+                  fontWeight="700"
+                  textAnchor="middle"
+                >
+                  🏁 {destName.length > 20 ? destName.slice(0, 18) + '...' : destName}
+                </text>
+              </g>
             </g>
           )}
 
-          {/* Regional Labeling matching screenshot */}
+          {/* Regional Labeling matching Singapore geographic layout */}
           <g fill="#cbd5e1" fontSize="11" fontWeight="700" letterSpacing="0.5" textAnchor="middle">
             <text x="235" y="425">JURONG WEST</text>
             <text x="320" y="435">JURONG EAST</text>
@@ -170,7 +249,7 @@ export const TransitMap: React.FC<TransitMapProps> = ({
             <text x="440" y="478">BUKIT TIMAH</text>
             <text x="548" y="272">ANG MO KIO</text>
             <text x="570" y="342">BISHAN</text>
-            <text x="568" y="445">TOA PAYOH</text>
+            <text x="568" y="380">TOA PAYOH</text>
             <text x="635" y="172">SELETAR</text>
             <text x="688" y="200">PUNGGOL</text>
             <text x="675" y="272">SENGKANG</text>
@@ -180,13 +259,17 @@ export const TransitMap: React.FC<TransitMapProps> = ({
             <text x="758" y="482">BEDOK</text>
             <text x="790" y="390">TAMPINES</text>
             <text x="785" y="315">PASIR RIS</text>
+            <text x="550" y="475">MARINA BAY</text>
             <text x="798" y="220">PULAU KETAM</text>
           </g>
 
           {/* Real Clickable Stop Markers */}
           {stops.map((stop) => {
             const isSelected = selectedStop.id === stop.id;
-            const isYou = stop.id === 'bayfront-03511';
+            const isStopOrigin = hasRoute && (
+              Math.abs(stop.coordinates.x - originCoords.x) < 25 &&
+              Math.abs(stop.coordinates.y - originCoords.y) < 25
+            );
 
             return (
               <g
@@ -195,11 +278,11 @@ export const TransitMap: React.FC<TransitMapProps> = ({
                 onClick={() => onSelectStop(stop)}
                 className="cursor-pointer transition-transform duration-150 hover:scale-110"
               >
-                {/* Outer pulsing ring for selected or current location */}
-                {(isSelected || isYou) && (
+                {/* Outer pulsing ring for selected stop */}
+                {isSelected && (
                   <circle
                     r="16"
-                    fill={isSelected ? 'rgba(59, 130, 246, 0.35)' : 'rgba(16, 185, 129, 0.25)'}
+                    fill="rgba(59, 130, 246, 0.35)"
                     className="animate-ping"
                   />
                 )}
@@ -236,7 +319,7 @@ export const TransitMap: React.FC<TransitMapProps> = ({
                       strokeWidth="1"
                     />
                     <text x="18" y="3" fill="#ffffff" fontSize="9.5" fontWeight="700">
-                      Stop 03211 (You)
+                      {isStopOrigin ? '📍 Start (Stop 03511)' : 'Stop 03511 (MBS)'}
                     </text>
                   </>
                 )}

@@ -6,8 +6,8 @@ export const INITIAL_BUS_STOPS: BusStop[] = [
     code: '03511',
     name: 'Bayfront Stn Exit B',
     road: 'Marina Bay Sands',
-    badgeText: 'Stop 03211 (You)',
-    coordinates: { x: 560, y: 420 },
+    badgeText: 'Stop 03511 (Downtown)',
+    coordinates: { x: 550, y: 465 },
     services: [
       {
         service: '36',
@@ -595,3 +595,108 @@ export const FAQ_ITEMS: FaqItem[] = [
       'It is free and it runs in your browser — no app store download and no account. You can add it to your phone\'s home screen from your browser\'s share menu if you want it to open like an app.',
   },
 ];
+
+export interface RegionLocation {
+  x: number;
+  y: number;
+  name: string;
+  stopCode: string;
+}
+
+export const SINGAPORE_REGION_COORDS: Record<string, RegionLocation> = {
+  'jurong west': { x: 235, y: 425, name: 'Jurong West', stopCode: '27219' },
+  'boon lay': { x: 235, y: 425, name: 'Boon Lay', stopCode: '22009' },
+  'jurong east': { x: 320, y: 435, name: 'Jurong East', stopCode: '28009' },
+  'jurong': { x: 320, y: 435, name: 'Jurong East', stopCode: '28009' },
+  'clementi': { x: 380, y: 440, name: 'Clementi', stopCode: '17179' },
+  'bukit batok': { x: 340, y: 302, name: 'Bukit Batok', stopCode: '43009' },
+  'choa chu kang': { x: 340, y: 222, name: 'Choa Chu Kang', stopCode: '44009' },
+  'cck': { x: 340, y: 222, name: 'Choa Chu Kang', stopCode: '44009' },
+  'bukit panjang': { x: 382, y: 258, name: 'Bukit Panjang', stopCode: '44029' },
+  'woodlands': { x: 450, y: 170, name: 'Woodlands', stopCode: '46009' },
+  'yishun': { x: 510, y: 210, name: 'Yishun', stopCode: '59009' },
+  'khatib': { x: 520, y: 235, name: 'Khatib', stopCode: '58221' },
+  'seletar': { x: 635, y: 172, name: 'Seletar', stopCode: '68009' },
+  'bukit timah': { x: 440, y: 460, name: 'Bukit Timah', stopCode: '42019' },
+  'beauty world': { x: 430, y: 450, name: 'Beauty World', stopCode: '42099' },
+  'ang mo kio': { x: 548, y: 272, name: 'Ang Mo Kio', stopCode: '54009' },
+  'amk': { x: 548, y: 272, name: 'Ang Mo Kio', stopCode: '54009' },
+  'bishan': { x: 570, y: 342, name: 'Bishan', stopCode: '53009' },
+  'toa payoh': { x: 568, y: 390, name: 'Toa Payoh', stopCode: '52009' },
+  'novena': { x: 540, y: 415, name: 'Novena', stopCode: '50038' },
+  'orchard': { x: 490, y: 435, name: 'Orchard Blvd', stopCode: '09022' },
+  'somerset': { x: 510, y: 440, name: 'Somerset', stopCode: '08138' },
+  'dhoby ghaut': { x: 530, y: 445, name: 'Dhoby Ghaut', stopCode: '08031' },
+  'city hall': { x: 540, y: 455, name: 'City Hall', stopCode: '04111' },
+  'marina bay': { x: 550, y: 465, name: 'Marina Bay', stopCode: '03511' },
+  'bayfront': { x: 550, y: 465, name: 'Bayfront MBS', stopCode: '03511' },
+  'mbs': { x: 550, y: 465, name: 'Marina Bay Sands', stopCode: '03511' },
+  'downtown': { x: 545, y: 465, name: 'Downtown', stopCode: '03511' },
+  'harbourfront': { x: 490, y: 485, name: 'HarbourFront', stopCode: '14119' },
+  'vivocity': { x: 490, y: 485, name: 'VivoCity', stopCode: '14119' },
+  'serangoon': { x: 615, y: 365, name: 'Serangoon', stopCode: '66009' },
+  'hougang': { x: 650, y: 325, name: 'Hougang', stopCode: '64009' },
+  'sengkang': { x: 675, y: 272, name: 'Sengkang', stopCode: '67009' },
+  'punggol': { x: 688, y: 200, name: 'Punggol', stopCode: '65009' },
+  'paya lebar': { x: 710, y: 415, name: 'Paya Lebar', stopCode: '81111' },
+  'bedok': { x: 758, y: 450, name: 'Bedok', stopCode: '84009' },
+  'tampines': { x: 790, y: 390, name: 'Tampines', stopCode: '75009' },
+  'pasir ris': { x: 785, y: 315, name: 'Pasir Ris', stopCode: '77009' },
+  'changi': { x: 830, y: 370, name: 'Changi Airport', stopCode: '95029' },
+  'jewel': { x: 830, y: 370, name: 'Jewel Changi Hub', stopCode: '95029' },
+  'airport': { x: 830, y: 370, name: 'Changi Airport PTB', stopCode: '95029' },
+  'current location': { x: 490, y: 435, name: 'Current Location', stopCode: '09022' },
+};
+
+/**
+ * Resolves any freeform address, postal code, or place in Singapore to map coordinates
+ */
+export function resolveSingaporeCoords(query: string, fallbackCoords = { x: 490, y: 435 }): RegionLocation {
+  const q = query.toLowerCase().trim();
+  if (!q || q.includes('current location') || q.includes('gps')) {
+    return {
+      x: fallbackCoords.x,
+      y: fallbackCoords.y,
+      name: 'Current Location',
+      stopCode: '09022',
+    };
+  }
+
+  // Check known bus stops first
+  for (const stop of INITIAL_BUS_STOPS) {
+    if (
+      q.includes(stop.code) ||
+      q.includes(stop.name.toLowerCase()) ||
+      q.includes(stop.road.toLowerCase())
+    ) {
+      return {
+        x: stop.coordinates.x,
+        y: stop.coordinates.y,
+        name: stop.name,
+        stopCode: stop.code,
+      };
+    }
+  }
+
+  // Match regional keywords
+  for (const [key, val] of Object.entries(SINGAPORE_REGION_COORDS)) {
+    if (q.includes(key)) {
+      return val;
+    }
+  }
+
+  // Deterministic pseudo-geographic hash within Singapore bounds for other addresses
+  let hash = 0;
+  for (let i = 0; i < q.length; i++) {
+    hash = (hash << 5) - hash + q.charCodeAt(i);
+    hash |= 0;
+  }
+  const normalizedX = 320 + (Math.abs(hash) % 460); // range 320 - 780
+  const normalizedY = 220 + (Math.abs(hash >> 3) % 240); // range 220 - 460
+  return {
+    x: normalizedX,
+    y: normalizedY,
+    name: query.split(',')[0].trim(),
+    stopCode: '03511',
+  };
+}
