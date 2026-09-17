@@ -76,30 +76,71 @@ export default function App() {
     document.getElementById('transit-map')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handlePlanCommute = (_origin: string, destination: string, preference: string) => {
-    // Generate realistic Singapore route steps
-    let steps = [
-      'Board MRT Downtown Line from Bayfront Stn (DT16) towards Expo',
-      'Alight at Promenade Stn (DT15), transfer to Bus 36 at Stop 02161',
-      'Take Bus 36 express via ECP highway directly to Changi Airport PTB 1/2/3',
-    ];
+  const handlePlanCommute = (origin: string, destination: string, preference: string) => {
+    // Sanitize and extract readable labels from user input
+    const rawOrigin = origin.replace(/^📍\s*(Current Location:?\s*)?/i, '').trim();
+    const cleanOrigin = rawOrigin || 'Current Location';
+    const cleanDest = destination.trim() || 'Destination';
+
+    const originShort = cleanOrigin.split(',')[0].trim();
+    const destShort = cleanDest.split(',')[0].trim();
+
+    // Match keyed-in addresses with any known Singapore transit hubs
+    const findMatchingStop = (query: string) => {
+      const q = query.toLowerCase();
+      return INITIAL_BUS_STOPS.find(
+        (s) =>
+          q.includes(s.code) ||
+          q.includes(s.name.toLowerCase()) ||
+          q.includes(s.road.toLowerCase()) ||
+          s.name.toLowerCase().includes(q) ||
+          s.road.toLowerCase().includes(q)
+      );
+    };
+
+    const originStop = findMatchingStop(cleanOrigin);
+    const destStop = findMatchingStop(cleanDest);
+
+    const originBoarding = originStop
+      ? `${originStop.name} (Stop ${originStop.code})`
+      : `${originShort} (Nearest bus stop)`;
+
+    const destAlighting = destStop
+      ? `${destStop.name} (Stop ${destStop.code})`
+      : `${destShort}`;
+
+    const busService = originStop?.services[0]?.service || '65';
+
+    let steps: string[] = [];
+    let duration = '32 mins';
 
     if (preference === 'Direct Bus Only') {
       steps = [
-        'Walk 2 mins to Stop 03511 (Bayfront Stn Exit B)',
-        'Board direct Bus 36 towards Tomlinson Rd (Loop via East Coast)',
-        'Arrive at destination without train transfers',
+        `Walk 3 mins from ${originShort} to boarding stop at ${originBoarding}`,
+        `Board direct Bus ${busService} towards ${destAlighting}`,
+        `Alight directly at ${destAlighting} without train transfers`,
       ];
+      duration = '42 mins';
     } else if (preference === 'Fewer Transfers') {
       steps = [
-        'Board East West Line towards Pasir Ris',
-        'Direct connection to Changi Airport branch line at Tanah Merah',
+        `Depart ${originShort}: Walk 2 mins to ${originBoarding}`,
+        `Board cross-corridor transit trunk towards ${destShort}`,
+        `Direct arrival at ${destAlighting} with 0-1 seamless transfer`,
       ];
+      duration = '36 mins';
+    } else {
+      // Fastest (MRT + Bus)
+      steps = [
+        `Depart ${originShort}: Board feeder bus or walk to ${originBoarding}`,
+        `Take rapid transit trunk connection directly towards ${destShort}`,
+        `Arrive at ${destAlighting} with minimal wait time`,
+      ];
+      duration = '27 mins';
     }
 
     setPlannedRouteResult({
-      title: `Optimal Route to ${destination.split(',')[0]}`,
-      duration: '38 mins',
+      title: `${originShort} ➔ ${destShort}`,
+      duration,
       steps,
     });
   };

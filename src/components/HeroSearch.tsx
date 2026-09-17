@@ -27,8 +27,8 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
   const [locateStatus, setLocateStatus] = useState<string | null>(null);
 
   // Commute Planner State
-  const [origin, setOrigin] = useState('10 Bayfront Ave, Marina Bay Sands (018956)');
-  const [destination, setDestination] = useState('Jewel Changi Airport, 78 Airport Blvd');
+  const [origin, setOrigin] = useState('');
+  const [destination, setDestination] = useState('');
   const [preference, setPreference] = useState('Fastest (MRT + Bus)');
   const [departTime, setDepartTime] = useState('Depart Now');
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
@@ -94,18 +94,36 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({
 
   const handleUseGpsOrigin = () => {
     setOrigin('Locating via GPS...');
-    setTimeout(() => {
-      setOrigin('📍 Current Location: Marina Bay Sands (03511)');
-    }, 500);
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          setTimeout(() => {
+            setOrigin('📍 Current Location');
+          }, 300);
+        },
+        () => {
+          setTimeout(() => {
+            setOrigin('📍 Current Location');
+          }, 300);
+        },
+        { timeout: 3000 }
+      );
+    } else {
+      setTimeout(() => {
+        setOrigin('📍 Current Location');
+      }, 300);
+    }
   };
 
   const handleCalculateCommute = () => {
+    const originToUse = origin.trim() || 'Current Location';
+    const destToUse = destination.trim() || 'Orchard / Downtown';
     setIsCalculatingRoute(true);
     setTimeout(() => {
       setIsCalculatingRoute(false);
-      onPlanCommute(origin, destination, preference);
+      onPlanCommute(originToUse, destToUse, preference);
       document.getElementById('transit-map')?.scrollIntoView({ behavior: 'smooth' });
-    }, 850);
+    }, 600);
   };
 
   return (
