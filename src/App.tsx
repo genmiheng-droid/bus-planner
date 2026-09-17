@@ -76,12 +76,20 @@ export default function App() {
 
   const handleSelectTab = (tab: 'home' | 'talk-to-us') => {
     setActiveTab(tab);
-    if (tab === 'talk-to-us') {
-      window.location.hash = '#talk-to-us';
-    } else {
-      if (window.location.hash === '#talk-to-us') {
-        history.pushState('', document.title, window.location.pathname + window.location.search);
+    try {
+      if (tab === 'talk-to-us') {
+        window.location.hash = '#talk-to-us';
+      } else {
+        if (window.location.hash === '#talk-to-us') {
+          if (typeof window.history?.pushState === 'function') {
+            window.history.pushState('', document.title, window.location.pathname + window.location.search);
+          } else {
+            window.location.hash = '';
+          }
+        }
       }
+    } catch {
+      // Ignore pushState restrictions in restricted iframes
     }
   };
 

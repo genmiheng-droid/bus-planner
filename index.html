@@ -12,6 +12,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script>
+      // Catch and suppress cross-origin Script error from third-party embeds (e.g. Disqus in iframes or ad-blockers)
+      window.addEventListener('error', function (event) {
+        if (event && (event.message === 'Script error.' || !event.filename || event.filename.includes('disqus.com'))) {
+          event.preventDefault && event.preventDefault();
+          return true;
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function (event) {
+        if (event && event.reason && (event.reason.message === 'Script error.' || String(event.reason).includes('disqus'))) {
+          event.preventDefault && event.preventDefault();
+        }
+      });
+    </script>
   </head>
   <body class="bg-night-950 text-slate-200 antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
     <div id="root"></div>

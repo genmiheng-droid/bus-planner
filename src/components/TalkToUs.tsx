@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { MessageSquare, RotateCw, ArrowLeft, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { MessageSquare, RotateCw, ArrowLeft, ShieldCheck, HeartHandshake, ExternalLink, AlertCircle } from 'lucide-react';
 
 declare global {
   interface Window {
-    disqus_config?: () => void;
+    disqus_config?: (this: { page?: { url?: string; identifier?: string; title?: string } }) => void;
     DISQUS?: {
       reset: (options: {
         reload: boolean;
-        config?: (this: { page: { url?: string; identifier?: string; title?: string } }) => void;
+        config?: (this: { page?: { url?: string; identifier?: string; title?: string } }) => void;
       }) => void;
     };
   }
@@ -20,60 +20,101 @@ interface TalkToUsProps {
 export const TalkToUs: React.FC<TalkToUsProps> = ({ onBackToHome }) => {
   const [isReloading, setIsReloading] = useState(false);
   const [loadedAt, setLoadedAt] = useState<string>('');
+  const [loadError, setLoadError] = useState(false);
 
   const initDisqus = () => {
     setIsReloading(true);
-    // Real fixed canonical configuration values
-    const DISQUS_PAGE_URL = `${window.location.origin}/talk-to-us`;
+    setLoadError(false);
+
+    // Guaranteed valid URL string even in sandboxed iframes
+    const origin =
+      typeof window !== 'undefined' &&
+      window.location &&
+      window.location.origin &&
+      window.location.origin !== 'null'
+        ? window.location.origin
+        : 'https://smartcommute.sg';
+
+    const DISQUS_PAGE_URL = `${origin}/talk-to-us`;
     const DISQUS_PAGE_IDENTIFIER = 'smartcommute-talk-to-us';
     const DISQUS_PAGE_TITLE = 'Talk to Us - SmartCommute Community';
 
-    if (window.DISQUS) {
-      // In Single-Page Applications, reloads properly when switching tabs
-      window.DISQUS.reset({
-        reload: true,
-        config: function () {
+    try {
+      if (typeof window !== 'undefined' && window.DISQUS) {
+        // In Single-Page Applications, reloads properly when switching tabs
+        window.DISQUS.reset({
+          reload: true,
+          config: function () {
+            this.page = this.page || {};
+            this.page.url = DISQUS_PAGE_URL;
+            this.page.identifier = DISQUS_PAGE_IDENTIFIER;
+            this.page.title = DISQUS_PAGE_TITLE;
+          },
+        });
+        setTimeout(() => setIsReloading(false), 500);
+        setLoadedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      } else {
+        // Initial Disqus configuration with real fixed values and guarded this.page
+        window.disqus_config = function () {
+          this.page = this.page || {};
           this.page.url = DISQUS_PAGE_URL;
           this.page.identifier = DISQUS_PAGE_IDENTIFIER;
           this.page.title = DISQUS_PAGE_TITLE;
-        },
-      });
-      setTimeout(() => setIsReloading(false), 500);
-      setLoadedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    } else {
-      // Initial Disqus configuration with real fixed values
-      window.disqus_config = function () {
-        (this as any).page.url = DISQUS_PAGE_URL;
-        (this as any).page.identifier = DISQUS_PAGE_IDENTIFIER;
-        (this as any).page.title = DISQUS_PAGE_TITLE;
-      };
+        };
 
-      const existingScript = document.getElementById('disqus-embed-script');
-      if (!existingScript) {
-        const d = document;
-        const s = d.createElement('script');
-        s.id = 'disqus-embed-script';
-        s.src = 'https://bus-app-1.disqus.com/embed.js';
-        s.setAttribute('data-timestamp', String(+new Date()));
-        s.onload = () => {
-          setIsReloading(false);
-          setLoadedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        };
-        s.onerror = () => {
-          setIsReloading(false);
-        };
-        (d.head || d.body).appendChild(s);
-      } else {
-        setTimeout(() => setIsReloading(false), 800);
-        setLoadedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        const existingScript = document.getElementById('disqus-embed-script');
+        if (!existingScript) {
+          const d = document;
+          const s = d.createElement('script');
+          s.id = 'disqus-embed-script';
+          s.src = 'https://bus-app-1.disqus.com/embed.js';
+          s.setAttribute('data-timestamp', String(+new Date()));
+          s.onload = () => {
+            setIsReloading(false);
+            setLoadedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          };
+          s.onerror = () => {
+            setIsReloading(false);
+            setLoadError(true);
+          };
+          (d.head || d.body).appendChild(s);
+        } else {
+          // If script is already in head, trigger reset after a short delay for DOM attachment
+          setTimeout(() => {
+            try {
+              if (window.DISQUS) {
+                window.DISQUS.reset({
+                  reload: true,
+                  config: function () {
+                    this.page = this.page || {};
+                    this.page.url = DISQUS_PAGE_URL;
+                    this.page.identifier = DISQUS_PAGE_IDENTIFIER;
+                    this.page.title = DISQUS_PAGE_TITLE;
+                  },
+                });
+              }
+            } catch (err) {
+              console.warn('Disqus reset error:', err);
+            }
+            setIsReloading(false);
+            setLoadedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          }, 300);
+        }
       }
+    } catch (err) {
+      console.warn('Disqus initialization caught:', err);
+      setIsReloading(false);
     }
   };
 
   useEffect(() => {
     initDisqus();
     // Scroll smoothly to top when tab is opened
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch {
+      // ignore
+    }
   }, []);
 
   return (
@@ -139,6 +180,32 @@ export const TalkToUs: React.FC<TalkToUsProps> = ({ onBackToHome }) => {
               <RotateCw className="w-4 h-4 text-brand-400 animate-spin" />
               <span>Loading discussion thread...</span>
             </div>
+          </div>
+        )}
+
+        {/* Fallback notification if blocked by ad-blocker or iframe cookie policies */}
+        {loadError && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-950/30 border border-amber-800/60 text-amber-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-200">
+                  Disqus embed could not be loaded directly
+                </p>
+                <p className="text-[11px] text-amber-300/80 mt-0.5">
+                  This typically occurs if an ad-blocker (e.g. uBlock) or browser privacy shield blocks third-party trackers.
+                </p>
+              </div>
+            </div>
+            <a
+              href="https://bus-app-1.disqus.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-900/40 hover:bg-amber-800/50 text-amber-100 text-xs font-medium border border-amber-700/60 transition shrink-0"
+            >
+              <span>Open on Disqus</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
         )}
 
