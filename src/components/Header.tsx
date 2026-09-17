@@ -24,24 +24,41 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={() => onSelectTab('home')}
           aria-label="SmartCommute Home"
-          className="flex items-center gap-2.5 text-white font-bold text-xl tracking-tight transition hover:opacity-90 cursor-pointer"
+          className="flex items-center gap-2 text-white font-bold text-xl tracking-tight transition hover:opacity-90 cursor-pointer"
         >
           <span className="text-2xl drop-shadow">🚌</span>
-          <span className="font-extrabold text-white text-lg sm:text-xl">SmartCommute</span>
+          <span className="font-extrabold text-white text-lg sm:text-xl tracking-tight">SmartCommute</span>
+          <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">
+            SG
+          </span>
         </button>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
           <button
             type="button"
             onClick={() => onSelectTab('home')}
-            className={`transition-colors py-1 cursor-pointer font-medium ${
+            className={`transition-all py-1.5 px-3 rounded-lg cursor-pointer font-medium ${
               activeTab === 'home'
-                ? 'text-white border-b-2 border-brand-500 font-semibold'
-                : 'text-slate-300 hover:text-white'
+                ? 'bg-night-800 text-white font-semibold'
+                : 'text-slate-300 hover:text-white hover:bg-night-800/50'
             }`}
           >
             Home
+          </button>
+          {/* Talk to Us Tab */}
+          <button
+            id="tab-talk-to-us"
+            type="button"
+            onClick={() => onSelectTab('talk-to-us')}
+            className={`transition-all py-1.5 px-3.5 rounded-lg flex items-center gap-1.5 cursor-pointer text-sm font-semibold ${
+              activeTab === 'talk-to-us'
+                ? 'bg-sky-500 text-white shadow-md shadow-sky-500/25'
+                : 'text-slate-300 hover:text-white hover:bg-night-800/50'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Talk to Us</span>
           </button>
           <a
             href="#popular-bus"
@@ -72,20 +89,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             Blog
           </a>
-          {/* Talk to Us Tab */}
-          <button
-            id="tab-talk-to-us"
-            type="button"
-            onClick={() => onSelectTab('talk-to-us')}
-            className={`transition-all py-1 px-2.5 rounded-lg flex items-center gap-1.5 cursor-pointer text-sm font-medium ${
-              activeTab === 'talk-to-us'
-                ? 'bg-brand-600 text-white font-semibold shadow-md shadow-brand-600/20'
-                : 'text-slate-300 hover:text-white hover:bg-night-800'
-            }`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Talk to Us</span>
-          </button>
         </nav>
 
         {/* Header Action */}
