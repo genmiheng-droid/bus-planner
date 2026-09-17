@@ -20,6 +20,7 @@ import { GuideModal } from './components/GuideModal';
 import { AlertsModal } from './components/AlertsModal';
 import { InstallModal } from './components/InstallModal';
 import { BookmarksModal } from './components/BookmarksModal';
+import { TalkToUs } from './components/TalkToUs';
 
 import {
   INITIAL_BUS_STOPS,
@@ -52,6 +53,37 @@ export default function App() {
 
   // Commute Planner calculation state
   const [plannedRouteResult, setPlannedRouteResult] = useState<PlannedRoute | null>(null);
+
+  // Active Navigation Tab ('home' | 'talk-to-us')
+  const [activeTab, setActiveTab] = useState<'home' | 'talk-to-us'>(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#talk-to-us') {
+      return 'talk-to-us';
+    }
+    return 'home';
+  });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#talk-to-us') {
+        setActiveTab('talk-to-us');
+      } else if (window.location.hash === '' || window.location.hash === '#home') {
+        setActiveTab('home');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleSelectTab = (tab: 'home' | 'talk-to-us') => {
+    setActiveTab(tab);
+    if (tab === 'talk-to-us') {
+      window.location.hash = '#talk-to-us';
+    } else {
+      if (window.location.hash === '#talk-to-us') {
+        history.pushState('', document.title, window.location.pathname + window.location.search);
+      }
+    }
+  };
 
   useEffect(() => {
     try {
@@ -246,98 +278,106 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-night-950 text-slate-200 antialiased flex flex-col selection:bg-brand-500 selection:text-white">
-      {/* Main Header */}
+      {/* Main Header with Tab Navigation */}
       <Header
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
         onOpenInstall={() => setIsInstallOpen(true)}
         onOpenAlerts={() => setIsAlertsOpen(true)}
       />
 
       <main className="flex-grow">
-        {/* Hero Section with Modes */}
-        <HeroSearch
-          busStops={stops}
-          onSelectStop={(stop) => setSelectedStop(stop)}
-          onLocateNearest={handleLocateNearest}
-          onPlanCommute={handlePlanCommute}
-          plannedRouteResult={plannedRouteResult}
-        />
+        {activeTab === 'talk-to-us' ? (
+          <TalkToUs onBackToHome={() => handleSelectTab('home')} />
+        ) : (
+          <>
+            {/* Hero Section with Modes */}
+            <HeroSearch
+              busStops={stops}
+              onSelectStop={(stop) => setSelectedStop(stop)}
+              onLocateNearest={handleLocateNearest}
+              onPlanCommute={handlePlanCommute}
+              plannedRouteResult={plannedRouteResult}
+            />
 
-        {/* Live Map and Arrivals Section */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-20" id="transit-map">
-          <div className="bg-night-900 border border-night-700/80 rounded-2xl overflow-hidden shadow-2xl">
-            {/* Map Top Utility Header (Matching Screenshot style) */}
-            <div className="px-4 py-3 bg-night-950/70 border-b border-night-700/60 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="font-medium text-slate-200">
-                  Tap <strong className="text-white">Locate Nearest Stop</strong> or click any marker on the map to view live arrival times.
-                </span>
+            {/* Live Map and Arrivals Section */}
+            <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-20" id="transit-map">
+              <div className="bg-night-900 border border-night-700/80 rounded-2xl overflow-hidden shadow-2xl">
+                {/* Map Top Utility Header (Matching Screenshot style) */}
+                <div className="px-4 py-3 bg-night-950/70 border-b border-night-700/60 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="font-medium text-slate-200">
+                      Tap <strong className="text-white">Locate Nearest Stop</strong> or click any marker on the map to view live arrival times.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-400">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-sgTransit-dt" /> Downtown Line
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-sgTransit-ew" /> East West
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-sgTransit-ns" /> North South
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-sgTransit-te" /> TEL
+                    </span>
+                  </div>
+                </div>
+
+                {/* Grid Container for Map & Live Arrivals */}
+                <div className="grid grid-cols-1 lg:grid-cols-12">
+                  <div className="lg:col-span-8">
+                    <TransitMap
+                      stops={stops}
+                      selectedStop={selectedStop}
+                      onSelectStop={(stop) => setSelectedStop(stop)}
+                      plannedRoute={plannedRouteResult}
+                      showPlannedRoute={!!plannedRouteResult}
+                    />
+                  </div>
+                  <ArrivalsPanel
+                    selectedStop={selectedStop}
+                    onSelectBusService={handleOpenBusService}
+                    isBookmarked={bookmarks.includes(selectedStop.id)}
+                    onToggleBookmark={handleToggleBookmark}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-slate-400">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sgTransit-dt" /> Downtown Line
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sgTransit-ew" /> East West
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sgTransit-ns" /> North South
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sgTransit-te" /> TEL
-                </span>
-              </div>
-            </div>
+            </section>
 
-            {/* Grid Container for Map & Live Arrivals */}
-            <div className="grid grid-cols-1 lg:grid-cols-12">
-              <div className="lg:col-span-8">
-                <TransitMap
-                  stops={stops}
-                  selectedStop={selectedStop}
-                  onSelectStop={(stop) => setSelectedStop(stop)}
-                  plannedRoute={plannedRouteResult}
-                  showPlannedRoute={!!plannedRouteResult}
-                />
-              </div>
-              <ArrivalsPanel
-                selectedStop={selectedStop}
-                onSelectBusService={handleOpenBusService}
-                isBookmarked={bookmarks.includes(selectedStop.id)}
-                onToggleBookmark={handleToggleBookmark}
-              />
-            </div>
-          </div>
-        </section>
+            {/* Value Proposition Section */}
+            <ValueProposition />
 
-        {/* Value Proposition Section */}
-        <ValueProposition />
+            {/* Features Grid Section */}
+            <FeaturesGrid
+              onLocateNearest={handleLocateNearest}
+              onOpenRouteLookup={() => handleOpenBusService('36')}
+              onOpenBookmarks={() => setIsBookmarksOpen(true)}
+              onOpenAlerts={() => setIsAlertsOpen(true)}
+            />
 
-        {/* Features Grid Section */}
-        <FeaturesGrid
-          onLocateNearest={handleLocateNearest}
-          onOpenRouteLookup={() => handleOpenBusService('36')}
-          onOpenBookmarks={() => setIsBookmarksOpen(true)}
-          onOpenAlerts={() => setIsAlertsOpen(true)}
-        />
+            {/* PWA Install Banner */}
+            <PwaBanner onOpenInstall={() => setIsInstallOpen(true)} />
 
-        {/* PWA Install Banner */}
-        <PwaBanner onOpenInstall={() => setIsInstallOpen(true)} />
+            {/* Popular Bus Services */}
+            <PopularBusServices
+              services={POPULAR_BUS_SERVICES}
+              onSelectService={handleOpenBusService}
+            />
 
-        {/* Popular Bus Services */}
-        <PopularBusServices
-          services={POPULAR_BUS_SERVICES}
-          onSelectService={handleOpenBusService}
-        />
+            {/* Guides for Singapore Commuters */}
+            <GuidesSection
+              guides={GUIDE_ARTICLES}
+              onSelectGuide={(guide) => setSelectedGuide(guide)}
+            />
 
-        {/* Guides for Singapore Commuters */}
-        <GuidesSection
-          guides={GUIDE_ARTICLES}
-          onSelectGuide={(guide) => setSelectedGuide(guide)}
-        />
-
-        {/* Frequently Asked Questions */}
-        <FaqSection faqs={FAQ_ITEMS} />
+            {/* Frequently Asked Questions */}
+            <FaqSection faqs={FAQ_ITEMS} />
+          </>
+        )}
       </main>
 
       {/* Main Footer */}
@@ -346,6 +386,7 @@ export default function App() {
         onOpenAlerts={() => setIsAlertsOpen(true)}
         onSelectGuide={() => setSelectedGuide(GUIDE_ARTICLES[0])}
         onScrollToTop={handleScrollToTop}
+        onSelectTalkToUs={() => handleSelectTab('talk-to-us')}
       />
 
       {/* Interactive Modals */}

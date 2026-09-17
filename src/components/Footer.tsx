@@ -5,6 +5,7 @@ interface FooterProps {
   onOpenAlerts: () => void;
   onSelectGuide: () => void;
   onScrollToTop: () => void;
+  onSelectTalkToUs?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -12,6 +13,7 @@ export const Footer: React.FC<FooterProps> = ({
   onOpenAlerts,
   onSelectGuide,
   onScrollToTop,
+  onSelectTalkToUs,
 }) => {
   return (
     <footer
@@ -132,6 +134,17 @@ export const Footer: React.FC<FooterProps> = ({
                   About SmartCommute
                 </a>
               </li>
+              {onSelectTalkToUs && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={onSelectTalkToUs}
+                    className="hover:text-white text-brand-400 transition cursor-pointer text-left font-medium"
+                  >
+                    💬 Talk to Us
+                  </button>
+                </li>
+              )}
               <li>
                 <a href="mailto:feedback@smartcommute.sg" className="hover:text-white transition">
                   Contact us
