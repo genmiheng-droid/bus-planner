@@ -1,4 +1,5 @@
 import { fetchState } from '../lib/fetchState.js';
+import { simulated } from '../lib/simulate.js';
 
 /**
  * Sends a JSON response with status code and headers, compatible with
@@ -34,44 +35,17 @@ function calculateMinutes(isoString) {
 }
 
 export default async function handler(req, res) {
-  // Query extraction
-  const query = req.query || {};
-  const simulate = query.simulate ? String(query.simulate).toLowerCase() : null;
+  // Check usability simulation on cue (works ONLY where ALLOW_SIMULATE is 'true')
+  if (await simulated(req, res)) {
+    return;
+  }
 
-  // Allow usability testers to trigger specific mock states for inspection
-  if (simulate) {
-    if (simulate === 'busy') {
-      res.setHeader('Cache-Control', 'no-store');
-      res.setHeader('Retry-After', '10');
-      return sendJson(res, 503, {
-        state: 'busy',
-        error: 'The bus service is busy. We will try again in 10 seconds.',
-      });
-    }
-    if (simulate === 'refused') {
-      res.setHeader('Cache-Control', 'no-store');
-      return sendJson(res, 502, {
-        state: 'refused',
-        error: 'We could not get bus times, so nothing on this panel is current. Please tell us if this stays.',
-      });
-    }
-    if (simulate === 'unreachable') {
-      res.setHeader('Cache-Control', 'no-store');
-      return sendJson(res, 504, {
-        state: 'unreachable',
-        error: 'We could not reach LTA, so nothing on this panel has updated.',
-      });
-    }
-    if (simulate === 'empty') {
-      res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
-      return sendJson(res, 200, {
-        state: 'empty',
-        busStopCode: String(query.BusStopCode || query.busStopCode || query.stop || '03511'),
-        services: [],
-        message: 'LTA answered, but no buses are listed for this stop right now.',
-      });
-    }
-    if (simulate === 'key_not_set' || simulate === 'my_key_not_set') {
+  const query = req.query || {};
+
+  // Support testing key-not-set in simulation mode
+  if (process.env.ALLOW_SIMULATE === 'true') {
+    const want = String(query.simulate ?? '').toLowerCase();
+    if (want === 'key_not_set' || want === 'my_key_not_set') {
       res.setHeader('Cache-Control', 'no-store');
       return sendJson(res, 503, {
         state: 'my key not set',

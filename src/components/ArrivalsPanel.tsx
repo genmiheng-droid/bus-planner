@@ -220,6 +220,7 @@ export const ArrivalsPanel: React.FC<ArrivalsPanelProps> = ({
             <div className="mt-2 pt-2 border-t border-night-800 flex flex-wrap gap-1.5">
               {[
                 { id: 'live', label: 'Live LTA' },
+                { id: 'loading', label: 'Loading (6s)' },
                 { id: 'empty', label: 'Empty (200)' },
                 { id: 'refused', label: 'Refused (502)' },
                 { id: 'busy', label: 'Busy (503)' },

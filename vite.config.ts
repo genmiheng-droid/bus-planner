@@ -4,10 +4,27 @@ import path from 'path';
 import {defineConfig, Plugin} from 'vite';
 
 function apiRoutesPlugin(): Plugin {
+  process.env.ALLOW_SIMULATE = process.env.ALLOW_SIMULATE || 'true';
+
   const handleApi = async (req: any, res: any, next: () => void) => {
     if (!req.url) return next();
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     
+    // Attach status and json response helpers if not present
+    if (typeof res.status !== 'function') {
+      res.status = function (code: number) {
+        res.statusCode = code;
+        return res;
+      };
+    }
+    if (typeof res.json !== 'function') {
+      res.json = function (body: any) {
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(body));
+        return res;
+      };
+    }
+
     if (url.pathname === '/api/bus') {
       try {
         req.query = Object.fromEntries(url.searchParams.entries());
